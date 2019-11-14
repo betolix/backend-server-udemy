@@ -3,8 +3,20 @@ var express = require ('express');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 
+// POSTGRES
+const pool = require('./db');
+
 // Inicializar variables
 var app = express ();
+
+// CORS
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS ");
+    next();
+});
+
 
 // Body Parser
 // parse application/x-www-form-urlencoded
@@ -26,12 +38,15 @@ var uploadRoutes = require ('./routes/upload');
 var imagenesRoutes = require ('./routes/imagenes');
 
 
-// Conexión a la base de datos
+// Conexión a la base de datos MONGO
 mongoose.connection.openUri('mongodb://localhost:27017/hospitalDB', (err, res) => {
     if( err ) throw err;
 
     console.log('Base de datos \x1b[32m%s\x1b[0m', 'online ');
 });
+
+// Conexión a la base de datos POSTGRES
+// seria aqui pero se ejecuta en db/index
 
 // Rutas
 app.use('/usuario', usuarioRoutes);
