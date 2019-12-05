@@ -1,7 +1,7 @@
 # Backend - Server
 
 Este es el cóigo necesario para stablecer el backend 
-conectado a MongoDB usando Mongoose.
+conectado a Postgres de manera directa.
 
 Para ejecutarlo, es necesario reconstruir los módulos
 de node usando el comando
