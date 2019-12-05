@@ -69,9 +69,13 @@ app.post('/google', async (req, res) => {
         });
       })
 
+      console.log('googleUser ', googleUser.body);
 
-      Usuario.findOne( { email: googleUser.email}, ( err, usuarioDB ) => {
 
+      // Usuario.findOne( { email: googleUser.email}, ( err, usuarioDB ) => {
+      pool.query('select _id, nombre, email, password, img, role, google from usuario WHERE email = $1 ORDER BY _id ASC', [googleUser.email], (err, usuarioDB) => {
+
+        console.log('err ', err);
         if (err) {
           return res.status(500).json({
             ok: false,
@@ -80,8 +84,8 @@ app.post('/google', async (req, res) => {
           });
         }
 
-        if (usuarioDB) {
-          if ( usuarioDB.google === false ){
+        if (usuarioDB.rowCount > 0) {
+          if ( usuarioDB.rows.google === false ){
 
             return res.status(400).json({
               ok: false,
@@ -89,14 +93,15 @@ app.post('/google', async (req, res) => {
             });
           } else {
 
-            var token = jwt.sign( { usuario: usuarioDB }, SEED, { expiresIn: 14400 } ); // 4 HORAS
+            console.log('usuarioDB.rows[0] ',usuarioDB.rows[0]);
+            var token = jwt.sign( { usuario: usuarioDB.rows[0] }, SEED, { expiresIn: 14400 } ); // 4 HORAS
 
             res.status(200).json({
                 ok: true,
-                usuario: usuarioDB,
+                usuario: usuarioDB.rows[0],
                 token: token,
-                id: usuarioDB._id,
-                menu: obtenerMenu( usuarioDB.role )
+                id: usuarioDB.rows[0]._id,
+                menu: obtenerMenu( usuarioDB.rows[0].role )
               });
 
           }
@@ -109,17 +114,23 @@ app.post('/google', async (req, res) => {
           usuario.img = googleUser.img;
           usuario.google = true;
           usuario.password = ':)';
+
+          console.log('googleUser.nombre ', googleUser.nombre);
           
 
-          usuario.save( (err, usuarioDB) => {
+          // usuario.save( (err, usuarioDB) => {
+          pool.query('INSERT INTO public.usuario( nombre, email, password, role, img, google) VALUES ($1,$2,$3,$4,$5,$6) returning *', [usuario.nombre, usuario.email, usuario.password, usuario.role, usuario.img, false ], (error, usuarioDB) => {
 
-            var token = jwt.sign( { usuario: usuarioDB }, SEED, { expiresIn: 14400 } ); // 4 HORAS
+            console.log('error ', error);
+            console.log('usuarioDB.rows  ', usuarioDB.rows );
+
+            var token = jwt.sign( { usuario: usuarioDB.rows[0] }, SEED, { expiresIn: 14400 } ); // 4 HORAS
 
             res.status(200).json({
                 ok: true,
-                usuario: usuarioDB,
+                usuario: usuarioDB.rows[0],
                 token: token,
-                id: usuarioDB._id,
+                id: usuarioDB.rows._id,
                 menu: obtenerMenu( usuarioDB.role )
               });
             
@@ -160,7 +171,7 @@ app.post('/', ( req, res) => {
   // console.log('body ', req.body);
 
     // Usuario.findOne({ email: body.email }, (err, usuarioDB ) => {
-    pool.query('select _id, email, password, role from usuario WHERE email= $1 ', [body.email], (err, usuarioDB) => {
+    pool.query('select _id, nombre, email, password, img, role from usuario WHERE email= $1 ', [body.email], (err, usuarioDB) => {
 
 
         // console.log('usuarioDB.rows ', usuarioDB.rows);
@@ -191,12 +202,13 @@ app.post('/', ( req, res) => {
               });
 
         }
+        usuarioDB.rows[0].password=':)';
 
         // Crear un token!!!
         console.log('// Crear un token!!!');
         console.log('usuarioDB.rows[0] ', usuarioDB.rows[0]);
         var token = jwt.sign( { usuario: usuarioDB.rows[0] }, SEED, { expiresIn: 14400 } ); // 4 HORAS
-        usuarioDB.rows[0].password=':)';
+        
 
         res.status(200).json({
             ok: true,

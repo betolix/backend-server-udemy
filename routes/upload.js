@@ -12,6 +12,9 @@ var Hospital = require('../models/hospital');
 // default options MIDDLEWARE
 app.use(fileUpload());
 
+// POSTGRES
+const pool = require('../db');
+
 
 
 // Rutas
@@ -30,9 +33,6 @@ app.put('/:tipo/:id', (req, res, next) => {
           });
 
     }
-
-
-
 
     if (!req.files) {
         return res.status(400).json({
@@ -63,6 +63,7 @@ app.put('/:tipo/:id', (req, res, next) => {
       // NOMBRE DE ARCHIVO PERSONALIZADO
       //123123123332-123.png
       var nombreArchivo = `${ id }-${ new Date().getMilliseconds()}.${ extensionArchivo }`;
+      //console.log('nombreArchivo ',nombreArchivo);
 
       // MOVER EL ARCHIVO DEL TEMPORAL A UN PATH ESPECIFICO
       var path = `./uploads/${ tipo }/${ nombreArchivo }`;
@@ -96,28 +97,30 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
     if ( tipo === 'usuarios') {
 
-        Usuario.findById(id, (err, usuario) => {
+        // Usuario.findById(id, (err, usuario) => {
+        pool.query('select _id, nombre, email, password, img, role, google  from usuario WHERE _id= $1 ', [id], (err, usuario) => {
 
-            if( !usuario ){
+            if( usuario.rowCount == 0 ){
 
                 return res.status(400).json({
                     ok: true,
                     mensaje: 'Usuario no existe',
-                    errors: {message: 'Usuario no existe'}
+                    errors: {message: 'Usuario no existe', err}
                 })
 
             }
             
-            var pathViejo = './uploads/usuarios/' + usuario.img;
+            var pathViejo = './uploads/usuarios/' + usuario.rows[0].img;
+            console.log('pathViejo ', pathViejo);
             
 
             // Si existe, elimina la imagen anterior
             if (fs.existsSync( pathViejo ) ){
                 fs.unlink( pathViejo, (err) => {
 
-                    // console.log('unlinking...');
+                    console.log('unlinking...');
                     if (err) {
-                        // console.log('Error en unlinking...');
+                        console.log('Error en unlinking...');
                         return response.status(400).json({
                             ok: false,
                             mensaje: 'No se pudo eliminar la imagen',
@@ -129,15 +132,25 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
             }
 
             usuario.img = nombreArchivo;
+            console.log('nombreArchivo ', nombreArchivo);
 
-            usuario.save( (err, usuarioActualizado) => {
+            //usuario.save( (err, usuarioActualizado) => {
 
-                usuarioActualizado.password = ':)';
+            // *** IMPORTANTE: FALTA DEFINIR SI SE GUARDARA EN LA BD EL NOMBRE DE LA IMAGEN O LA IMAGEN MISMA
+            // *** IMPORTANTE: FALTA DEFINIR SI SE GUARDARA EN LA BD EL NOMBRE DE LA IMAGEN O LA IMAGEN MISMA
+            // *** IMPORTANTE: FALTA DEFINIR SI SE GUARDARA EN LA BD EL NOMBRE DE LA IMAGEN O LA IMAGEN MISMA
+            // *** IMPORTANTE: FALTA DEFINIR SI SE GUARDARA EN LA BD EL NOMBRE DE LA IMAGEN O LA IMAGEN MISMA
+
+            pool.query('UPDATE usuario SET img=$1 WHERE _id=($2) RETURNING *', [nombreArchivo, id], (error, usuarioActualizado) => {
+                // console.log('error ', error);
+                usuarioActualizado.rows[0].password = ':)';
+                // console.log('usuarioActualizado ', usuarioActualizado.rows);
+                
 
                 return res.status(200).json({
                     ok: true,
                     mensaje: 'Imagen de usuario actualizada',
-                    usuario: usuarioActualizado
+                    usuario: usuarioActualizado.rows[0]
                 })
 
             } );
@@ -151,9 +164,10 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
     if ( tipo === 'medicos') {
 
-        Medico.findById(id, (err, medico) => {
+        // Medico.findById(id, (err, medico) => {
+        pool.query('select _id, nombre, img  FROM medico WHERE _id= $1 ', [id], (err, medico) => {
 
-            if( !medico ){
+            if( medico.rowCount == 0 ){
 
                 return res.status(400).json({
                     ok: true,
@@ -163,8 +177,7 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
             }
             
-            var pathViejo = './uploads/medicos/' + medico.img;
-            
+            var pathViejo = './uploads/medicos/' + medico.rows[0].img;           
 
             // Si existe, elimina la imagen anterior
             if (fs.existsSync( pathViejo ) ){
@@ -185,14 +198,15 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
             medico.img = nombreArchivo;
 
-            medico.save( (err, medicoActualizado) => {
+            // medico.save( (err, medicoActualizado) => {
+            pool.query('UPDATE medico SET img=$1 WHERE _id=($2) RETURNING *', [nombreArchivo, id], (error, medicoActualizado) => {
 
                 // medicoActualizado.password = ':)';
 
                 return res.status(200).json({
                     ok: true,
                     mensaje: 'Imagen de medico actualizada',
-                    medico: medicoActualizado
+                    medico: medicoActualizado.rows
                 })
 
             } );
@@ -206,9 +220,13 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
     if ( tipo === 'hospitales') {
 
-        Hospital.findById(id, (err, hospital) => {
+        // Hospital.findById(id, (err, hospital) => {
+        pool.query('select _id, img, nombre_hospital FROM hospital WHERE _id= ($1) ', [id], (err, hospital) => {
 
-            if( !hospital ){
+            console.log('hospital ', hospital);
+            console.log('err ', err);
+
+            if( hospital.rowCount == 0 ){
 
                 return res.status(400).json({
                     ok: true,
@@ -218,7 +236,7 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
             }
             
-            var pathViejo = './uploads/hospitales/' + hospital.img;
+            var pathViejo = './uploads/hospitales/' + hospital.rows[0].img;
             
 
             // Si existe, elimina la imagen anterior
@@ -240,14 +258,15 @@ function subirPorTipo( tipo, id, nombreArchivo, res) {
 
             hospital.img = nombreArchivo;
 
-            hospital.save( (err, hospitalActualizado) => {
+            // hospital.save( (err, hospitalActualizado) => {
+            pool.query('UPDATE hospital SET img=$1 WHERE _id=($2) RETURNING *', [nombreArchivo, id], (error, hospitalActualizado) => {
 
                 // hospitalActualizado.password = ':)';
 
                 return res.status(200).json({
                     ok: true,
                     mensaje: 'Imagen de hospital actualizada',
-                    hospital: hospitalActualizado
+                    hospital: hospitalActualizado.rows
                 })
 
             } );

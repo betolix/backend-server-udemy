@@ -60,7 +60,7 @@ app.get("/", (req, res, next) => {
 app.get("/", (req, res, next) => {
 
   // console.log('Weeeee');
-  pool.query('select _id, nombre, email  , password, img, role, google from usuario ORDER BY _id ASC', (error, response) => {
+  pool.query('select _id, nombre, email, password, img, role, google from usuario ORDER BY _id ASC', (error, response) => {
     if (error ) {
       return res.status(500).json({
         ok: false,
@@ -232,7 +232,7 @@ app.put('/:id', [mdAutenticacion.verificaToken, mdAutenticacion.verificaADMIN_o_
 //==================================================
 // Crear un nuevo usuario POSTGRES OK
 //==================================================
-app.post('/',  mdAutenticacion.verificaToken , (req, res) => {
+app.post('/', /*mdAutenticacion.verificaToken,*/  (req, res) => {
 
   var body = req.body;
 
@@ -255,10 +255,11 @@ app.post('/',  mdAutenticacion.verificaToken , (req, res) => {
             errors: error
           });
         }
+        usuarioGuardado.rows[0].password = ':)';
 
         res.status(201).json({
           ok: true,
-          usuario: usuarioGuardado.rows,
+          usuario: usuarioGuardado.rows[0],
           usuariotoken: req.usuario
         });
 
@@ -340,7 +341,7 @@ app.delete('/:id', [mdAutenticacion.verificaToken, mdAutenticacion.verificaADMIN
 
     return res.status(200).json({
       ok: true,
-      usuario: response.rows
+      usuario: response.rows[0]
     });
 
   });
